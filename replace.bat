@@ -1,0 +1,3 @@
+wsl sed -i -e 's/8787/i ^ (int)/g; s/std::pow/__powf/g; s/4242/__brev(x)/g; s/3636/__sinf(temp)/g; s/6363/__cosf(temp)/g' /mnt/c/Users/b98/git/TaurusGen/spfb64/CUDA/src/spfb64_0.cu
+wsl sed -i -e 's/8787/i ^ (int)/g; s/std::pow/__powf/g; s/4242/__brev(x)/g; s/3636/__sinf(temp)/g; s/6363/__cosf(temp)/g' /mnt/c/Users/b98/git/TaurusGen/spfb2048/CUDA/src/spfb2048_0.cu
+wsl sed -i -e 's/8787/i ^ (int)/g; s/std::pow/__powf/g; s/4242/__brev(x)/g; s/3636/__sinf(temp)/g; s/6363/__cosf(temp)/g' /mnt/c/Users/b98/git/TaurusGen/spfb32768/CUDA/src/spfb32768_0.cu
