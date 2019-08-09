@@ -1,0 +1,9 @@
+slurmstepd: error: execve(): /home/nihe532b/musket-build/mpfb64/CUDA/build/benchmark/bin/spfb64_0: No such file or directory
+srun: error: taurusi2052: task 0: Exited with exit code 2
+slurmstepd: error: execve(): /home/nihe532b/musket-build/mpfb64/CUDA/build/benchmark/bin/spfb64_0: No such file or directory
+srun: error: taurusi2052: task 0: Exited with exit code 2
+slurmstepd: error: execve(): /home/nihe532b/musket-build/mpfb64/CUDA/build/benchmark/bin/spfb64_0: No such file or directory
+srun: error: taurusi2052: task 0: Exited with exit code 2
+slurmstepd: error: execve(): /home/nihe532b/musket-build/mpfb64/CUDA/build/benchmark/bin/spfb64_0: No such file or directory
+srun: error: taurusi2052: task 0: Exited with exit code 2
+slurmstepd: error: *** JOB 12902306 ON taurusi2052 CANCELLED AT 2019-08-09T09:41:55 ***
