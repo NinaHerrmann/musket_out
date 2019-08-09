@@ -1,21 +1,12 @@
 spfb64/CUDA/build/*
-spfb64/CUDA/out/*
 spfb2048/CUDA/build/*
-spfb2048/CUDA/out/*
 spfb32768/CUDA/build/*
-spfb32768/CUDA/out/*
 
 mpfb64/CUDA/build/*
-mpfb64/CUDA/out/*
 mpfb2048/CUDA/build/*
-mpfb2048/CUDA/out/*
 mpfb32768/CUDA/build/*
-mpfb32768/CUDA/out/*
 
 lpfb64/CUDA/build/*
-lpfb64/CUDA/out/*
 lpfb2048/CUDA/build/*
-lpfb2048/CUDA/out/*
 lpfb32768/CUDA/build/*
-lpfb32768/CUDA/out/*
 
