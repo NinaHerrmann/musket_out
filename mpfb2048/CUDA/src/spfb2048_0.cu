@@ -40,7 +40,7 @@
 	//		if (Index > 16384 && Index < 16386) {
 	//		printf("Index: %d j:%d coeffindex %d data is %f coeff is %f \n", Index, j, (Index%channels)+(j*channels), input.get_data_local(((Index) + ((j) * (channels)))), coeff.get_data_local(((Index%(channels)) + ((j) * (channels)))));
 //}		
-		newa += (input.get_data_local(((Index) + ((j) * (channels)))) * coeff.get_data_local(((Index%(channels)) + ((j) * (channels))))
+		newa += (input.get_data_local(((Index) + ((j) * (channels)))) * coeff.get_data_local(((Index%(channels*taps)) + ((j) * (channels))))
 				);
 			}
 			}

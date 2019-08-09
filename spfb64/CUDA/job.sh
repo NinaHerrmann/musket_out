@@ -6,7 +6,7 @@
 #SBATCH --partition gpu2
 #SBATCH --exclusive
 #SBATCH --exclude taurusi[2001-2044]
-#SBATCH --output spfb64-nodes-1-gpu-1.out
+#SBATCH --output /home/nihe532b/musket-build/spfb64/CUDA/out/spfb64-nodes-1-gpu-1.out
 #SBATCH --cpus-per-task 24
 #SBATCH --mail-type ALL
 #SBATCH --mail-user nina.herrmann@mailbox.tu-dresden.de
