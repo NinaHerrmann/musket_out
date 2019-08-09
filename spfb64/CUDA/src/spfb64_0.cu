@@ -13,7 +13,6 @@
 	#include <type_traits>
 
 	#include "../include/timer.cuh"
-	#include "../include/filehelper.h"
 	#include "../include/musket.cuh"
 	#include "../include/spfb64_0.cuh"
 	
@@ -40,7 +39,7 @@
 				newa += (// TODO: ExpressionGenerator.generateCollectionElementRef: Array, global indices, distributed
 				input.get_data_local(((Index) + ((j) * (channels))))
 				 * // TODO: ExpressionGenerator.generateCollectionElementRef: Array, global indices, distributed
-				coeff.get_data_local(((Index) + ((j) * (channels))))
+				coeff.get_data_local(((Index%(taps*channels)) + ((j) * (channels))))
 				);
 			}
 			}
@@ -137,10 +136,10 @@
 				b >>= 1;
 			}
 
-			double temp = 2.0 * pi / n * (b2 << (log2size - counter - 1));
+			double temp = 2.0 * pi / Problemsize * (b2 << (log2size - counter - 1));
 			float2 intermediateresult;
 			intermediateresult.x = __cosf(temp);
-			intermediateresult.y = __sinf(temp);
+			intermediateresult.y = -__sinf(temp);
 			
 			if(((Index) == __powf(2, (((log2size) - 1) - (counter))))){
 			float2 mult_res;
@@ -204,28 +203,37 @@
 		
 		mkt::sync_streams();
 		std::chrono::high_resolution_clock::time_point complete_timer_start = std::chrono::high_resolution_clock::now();
-		
+		GpuTimer timer;
+		double allocation = 0.0,fill = 0.0, rest = 0.0, rest2 = 0.0;
+		timer.Start();
 		mkt::DArray<float> input(0, 134218224, 134218224, 0.0f, 1, 0, 0, mkt::DIST, mkt::COPY);
 		mkt::DArray<float> input_double(0, 134217728, 134217728, 0.0f, 1, 0, 0, mkt::DIST, mkt::COPY);
 		mkt::DArray<float2> c_input_double(0, 134217728, 134217728, float2{}, 1, 0, 0, mkt::DIST, mkt::COPY);
 		mkt::DArray<float2> c_output(0, 134217728, 134217728, float2{}, 1, 0, 0, mkt::DIST, mkt::COPY);
 		mkt::DArray<float> coeff(0, 1024, 1024, 0.0f, 1, 0, 0, mkt::DIST, mkt::COPY);
+		timer.Stop();
+		allocation += timer.Elapsed();
+		timer.Start();
 		srand(1);
-		for (int n = 0; n < 134316032; n++) {
+		for (int n = 0; n < 134218224; n++) {
 			input[n] = (rand() / (float)RAND_MAX);
 		}
-		for (int n = 0; n < 131072; n++) {
+		for (int n = 0; n < 1024; n++) {
 			coeff[n] = (rand() / (float)RAND_MAX);
 		}
 		input.update_devices();
 		coeff.update_devices();
+		timer.Stop();
+		fill += timer.Elapsed();
+		timer.Start();
 		FIR_map_index_in_place_array_functor fIR_map_index_in_place_array_functor{input, coeff};
 		Float_to_float2_map_index_in_place_array_functor float_to_float2_map_index_in_place_array_functor{input_double};
 		Fetch_map_index_in_place_array_functor fetch_map_index_in_place_array_functor{c_output};
 		Combine_map_index_in_place_array_functor combine_map_index_in_place_array_functor{c_input_double};
-		
-		
-		GpuTimer timer;
+		timer.Stop();
+		rest += timer.Elapsed();
+
+
 		double fir_time = 0.0, fft_time = 0.0, R2C_time = 0.0;
 
 		int ntaps = 16;
@@ -252,6 +260,6 @@
 		mkt::sync_streams();
 		timer.Stop();
 		fft_time += timer.Elapsed();
-		printf("%.5f;%.5f;%.5f\n", fir_time, fft_time, R2C_time);
+		printf("\n%f;%f;%f;%f;%f;%f\n", fir_time, fft_time, R2C_time, allocation, fill, rest);
 		return EXIT_SUCCESS;
 		}

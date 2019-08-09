@@ -135,6 +135,7 @@ __global__ void mkt::kernel::map_index_in_place(T* inout, unsigned int rows, uns
     }
   }
 }
+/*
 template<typename T, typename F>
 void mkt::kernel::fold_call(unsigned int size, T* d_idata, T* d_odata, int threads, int blocks, T identity, F& f, cudaStream_t& stream, int gpu) {
   cudaSetDevice(gpu);
@@ -269,7 +270,7 @@ void mkt::kernel::fold_call(unsigned int size, T* d_idata, T* d_odata, int threa
 	  if (tid == 0) {
 	    g_odata[blockIdx.x] = sdata_t[0];
 	  }
-	}
+	}*/
 template<typename T>
 void mkt::kernel::reduce_plus_call(unsigned int size, T* d_idata, T* d_odata, int threads, int blocks, cudaStream_t& stream, int gpu) {
   cudaSetDevice(gpu);

@@ -1,0 +1,7 @@
+spfb64/CUDA/build/*
+spfb64/CUDA/out/*
+spfb2048/CUDA/build/*
+spfb2048/CUDA/out/*
+spfb32768/CUDA/build/*
+spfb32768/CUDA/out/*
+
