@@ -32,15 +32,16 @@
 		~FIR_map_index_in_place_array_functor() {}
 		
 		__device__
-		auto operator()(int Index, float a){
-			float newa = 0.0;
-			
+		auto operator()(int Index, float2 a){
+			float2 newa;
+			newa.y = 0;
+			newa.x = 0;
 			if((Index + ((taps-1) *channels)) <= ((channels) * (spectra))){
 			for(int j = 0; ((j) < (taps)); j++){
 	//		if (Index > 16384 && Index < 16386) {
 	//		printf("Index: %d j:%d coeffindex %d data is %f coeff is %f \n", Index, j, (Index%channels)+(j*channels), input.get_data_local(((Index) + ((j) * (channels)))), coeff.get_data_local(((Index%(channels)) + ((j) * (channels)))));
 //}		
-		newa += (input.get_data_local(((Index) + ((j) * (channels)))) * coeff.get_data_local(((Index%(channels)) + ((j) * (channels))))
+			newa.x  += (input.get_data_local(((Index) + ((j) * (channels)))) * coeff.get_data_local(((Index%(channels)) + ((j) * (channels))))
 				);
 			}
 			}
@@ -64,33 +65,6 @@ return newa;
 		
 		mkt::DeviceArray<float> input;
 		mkt::DeviceArray<float> coeff;
-	};
-	struct Float_to_float2_map_index_in_place_array_functor{
-		
-		Float_to_float2_map_index_in_place_array_functor(const mkt::DArray<float>& _input_double) : input_double(_input_double){}
-		
-		~Float_to_float2_map_index_in_place_array_functor() {}
-		
-		__device__
-		auto operator()(int x, float2 y){
-			y.x = static_cast<float>(// TODO: ExpressionGenerator.generateCollectionElementRef: Array, global indices, distributed
-			input_double.get_data_local((x))
-			);
-			y.y = 0.0f;
-			return (y);
-		}
-	
-		void init(int device){
-			input_double.init(device);
-		}
-		
-		size_t get_smem_bytes(){
-			size_t result = 0;
-			return result;
-		}
-		
-		
-		mkt::DeviceArray<float> input_double;
 	};
 	struct Fetch_map_index_in_place_array_functor{
 		
@@ -206,30 +180,31 @@ return newa;
 		mkt::sync_streams();
 		std::chrono::high_resolution_clock::time_point complete_timer_start = std::chrono::high_resolution_clock::now();
 		GpuTimer timer;
-		double allocation = 0.0,fill = 0.0, rest = 0.0, rest2 = 0.0;
+		double allocation = 0.0,fill = 0.0, rest = 0.0, rest2 = 0.0, out = 0.0;
 		timer.Start();
 		mkt::DArray<float> input(0, 134217728, 134217728, 0.0f, 1, 0, 0, mkt::DIST, mkt::COPY);
-		mkt::DArray<float> input_double(0, 134217728, 134217728, 0.0f, 1, 0, 0, mkt::DIST, mkt::COPY);
+	//	mkt::DArray<float> input_double(0, 134217728, 134217728, 0.0f, 1, 0, 0, mkt::DIST, mkt::COPY);
 		mkt::DArray<float2> c_input_double(0, 134217728, 134217728, float2{}, 1, 0, 0, mkt::DIST, mkt::COPY);
 		mkt::DArray<float2> c_output(0, 134217728, 134217728, float2{}, 1, 0, 0, mkt::DIST, mkt::COPY);
 		mkt::DArray<float> coeff(0, 16384, 16384, 0.0f, 1, 0, 0, mkt::DIST, mkt::COPY);
 		srand(1);
 		timer.Stop();
 		allocation += timer.Elapsed();
-		timer.Start();
+		// timer.Start();
 		for (int n = 0; n < 134217728; n++) {
-			input[n] = 1;
+			input[n] = (rand() / (float)RAND_MAX);
 		}
 		for (int n = 0; n < 16384; n++) {
-			coeff[n] = 1;//(rand() / (float)RAND_MAX);
+			coeff[n] = (rand() / (float)RAND_MAX);
 		}
+		timer.Start();
 		input.update_devices();
 		coeff.update_devices();
 		timer.Stop();
 		fill += timer.Elapsed();
 		timer.Start();
 		FIR_map_index_in_place_array_functor fIR_map_index_in_place_array_functor{input, coeff};
-		Float_to_float2_map_index_in_place_array_functor float_to_float2_map_index_in_place_array_functor{input_double};
+		//Float_to_float2_map_index_in_place_array_functor float_to_float2_map_index_in_place_array_functor{input_double};
 		Fetch_map_index_in_place_array_functor fetch_map_index_in_place_array_functor{c_output};
 		Combine_map_index_in_place_array_functor combine_map_index_in_place_array_functor{c_input_double};
 		timer.Stop();
@@ -244,16 +219,16 @@ return newa;
 		timer.Start();
 
 		fIR_map_index_in_place_array_functor.taps = (ntaps);fIR_map_index_in_place_array_functor.channels = (nchans);fIR_map_index_in_place_array_functor.spectra = (nspectra);	
-		mkt::map_index_in_place<float, FIR_map_index_in_place_array_functor>(input_double, fIR_map_index_in_place_array_functor);
+		mkt::map_index_in_place<float2, FIR_map_index_in_place_array_functor>(c_input_double, fIR_map_index_in_place_array_functor);
 		timer.Stop();
 		cudaDeviceSynchronize();
-		input_double.update_self();
+		//input_double.update_self();
 		for (int i = 134210000; i < 134210010; i++){
 			//printf("%f", input_double[i]);
 }
 		fir_time += timer.Elapsed();
 		timer.Start();	
-		mkt::map_index_in_place<float2, Float_to_float2_map_index_in_place_array_functor>(c_output, float_to_float2_map_index_in_place_array_functor);
+		//mkt::map_index_in_place<float2, Float_to_float2_map_index_in_place_array_functor>(c_output, float_to_float2_map_index_in_place_array_functor);
 		timer.Stop();
 		R2C_time += timer.Elapsed();
 		timer.Start();	
@@ -263,16 +238,18 @@ return newa;
 			combine_map_index_in_place_array_functor.counter = (j);combine_map_index_in_place_array_functor.log2size = (log2size);combine_map_index_in_place_array_functor.pi = (PI);combine_map_index_in_place_array_functor.Problemsize = 16;
 			mkt::map_index_in_place<float2, Combine_map_index_in_place_array_functor>(c_output, combine_map_index_in_place_array_functor);
 		}
-		cudaDeviceSynchronize();
 		timer.Stop();
 		fft_time += timer.Elapsed();
+		timer.Start();
 		cudaDeviceSynchronize();
 		c_output.update_self();
+		timer.Stop();
+		out += timer.Elapsed();
 		for(int i = 0; i <10 ; i++){
 			//printf("(%f%f)\n", c_output[i].x, c_output[i].y);
 			
 		}
-		printf("\n%.5f;%.5f;%.5f;%f;%f;%f\n", fir_time, fft_time, R2C_time, allocation, fill, rest);
+		printf("\n%.5f;%.5f;%.5f;%f;%f;%f;%f\n", fir_time, fft_time, R2C_time, allocation, fill, rest, out);
 		
 		return EXIT_SUCCESS;
 		}

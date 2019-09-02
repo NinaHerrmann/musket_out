@@ -31,12 +31,12 @@
 		~FIR_map_index_in_place_array_functor() {}
 		
 		__device__
-		auto operator()(int Index, float a){
-			float newa = 0;
+		auto operator()(int Index, float2 a){
+			float2 newa; newa.x = 0.0f;newa.y=0.0f;
 			
 			if(((Index) <= ((channels) * (spectra)))){
 			for(int j = 0; ((j) < (taps)); j++){
-				newa += (// TODO: ExpressionGenerator.generateCollectionElementRef: Array, global indices, distributed
+				newa.x += (// TODO: ExpressionGenerator.generateCollectionElementRef: Array, global indices, distributed
 				input.get_data_local(((Index) + ((j) * (channels)))) * coeff.get_data_local(((Index%(taps*channels)) + ((j) * (channels))))
 				);
 			}
@@ -60,33 +60,6 @@
 		
 		mkt::DeviceArray<float> input;
 		mkt::DeviceArray<float> coeff;
-	};
-	struct Float_to_float2_map_index_in_place_array_functor{
-		
-		Float_to_float2_map_index_in_place_array_functor(const mkt::DArray<float>& _input_double) : input_double(_input_double){}
-		
-		~Float_to_float2_map_index_in_place_array_functor() {}
-		
-		__device__
-		auto operator()(int x, float2 y){
-			y.x = static_cast<float>(// TODO: ExpressionGenerator.generateCollectionElementRef: Array, global indices, distributed
-			input_double.get_data_local((x))
-			);
-			y.y = 0.0f;
-			return (y);
-		}
-	
-		void init(int device){
-			input_double.init(device);
-		}
-		
-		size_t get_smem_bytes(){
-			size_t result = 0;
-			return result;
-		}
-		
-		
-		mkt::DeviceArray<float> input_double;
 	};
 	struct Fetch_map_index_in_place_array_functor{
 		
@@ -205,13 +178,13 @@
 		double allocation = 0.0,fill = 0.0, rest = 0.0, rest2 = 0.0;
 		timer.Start();
 		mkt::DArray<float> input(0, 268533760, 268533760, 0.0f, 1, 0, 0, mkt::DIST, mkt::COPY);
-                mkt::DArray<float> input_double(0, 268435456, 268435456, 0.0f, 1, 0, 0, mkt::DIST, mkt::COPY);
+          //      mkt::DArray<float> input_double(0, 268435456, 268435456, 0.0f, 1, 0, 0, mkt::DIST, mkt::COPY);
                 mkt::DArray<float2> c_input_double(0, 268435456, 268435456, float2{}, 1, 0, 0, mkt::DIST, mkt::COPY);
                 mkt::DArray<float2> c_output(0, 268435456, 268435456, float2{}, 1, 0, 0, mkt::DIST, mkt::COPY);
                 mkt::DArray<float> coeff(0, 131072, 131072, 0.0f, 1, 0, 0, mkt::DIST, mkt::COPY);
 		timer.Stop();
 		allocation += timer.Elapsed();
-		timer.Start();
+		// timer.Start();
 		srand(1);
 		for (int n = 0; n < 268533760; n++) {
 			input[n] = (rand() / (float)RAND_MAX);
@@ -219,13 +192,14 @@
 		for (int n = 0; n < 131072; n++) {
 			coeff[n] = (rand() / (float)RAND_MAX);
 		}
+		timer.Start();
 		input.update_devices();
 		coeff.update_devices();
 		timer.Stop();
 		fill += timer.Elapsed();
 		timer.Start();
 		FIR_map_index_in_place_array_functor fIR_map_index_in_place_array_functor{input, coeff};
-		Float_to_float2_map_index_in_place_array_functor float_to_float2_map_index_in_place_array_functor{input_double};
+	//	Float_to_float2_map_index_in_place_array_functor float_to_float2_map_index_in_place_array_functor{input_double};
 		Fetch_map_index_in_place_array_functor fetch_map_index_in_place_array_functor{c_output};
 		Combine_map_index_in_place_array_functor combine_map_index_in_place_array_functor{c_input_double};
 		timer.Stop();
@@ -240,11 +214,11 @@
 		timer.Start();
 
 		fIR_map_index_in_place_array_functor.taps = (ntaps);fIR_map_index_in_place_array_functor.channels = (nchans);fIR_map_index_in_place_array_functor.spectra = (nspectra);
-		mkt::map_index_in_place<float, FIR_map_index_in_place_array_functor>(input_double, fIR_map_index_in_place_array_functor);
+		mkt::map_index_in_place<float2, FIR_map_index_in_place_array_functor>(c_input_double, fIR_map_index_in_place_array_functor);
 		timer.Stop();
 		fir_time += timer.Elapsed();
 		timer.Start();	
-		mkt::map_index_in_place<float2, Float_to_float2_map_index_in_place_array_functor>(c_output, float_to_float2_map_index_in_place_array_functor);
+		//mkt::map_index_in_place<float2, Float_to_float2_map_index_in_place_array_functor>(c_output, float_to_float2_map_index_in_place_array_functor);
 		timer.Stop();
 		R2C_time += timer.Elapsed();
 		timer.Start();	

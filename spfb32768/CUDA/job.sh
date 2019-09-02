@@ -16,5 +16,5 @@
 
 RUNS=100
 for ((i=1;i<=RUNS;i++)); do
-    srun --multi-prog /home/nihe532b/musket-build/spfb32768/CUDA/job.conf
+    srun /home/nihe532b/musket-build/spfb32768/CUDA/build/benchmark/bin/spfb32768_0 
 done
