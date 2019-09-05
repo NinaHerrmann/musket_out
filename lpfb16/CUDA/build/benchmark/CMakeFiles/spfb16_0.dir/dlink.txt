@@ -1,0 +1,1 @@
+/sw/installed/CUDA/10.0.130/bin/nvcc   -Xcompiler  -Xlinker  -O3 -arch=compute_35 -code=sm_35 -use_fast_math -w -restrict -Xptxas -O3 -Xcompiler -O3,-DNDEBUG,-march=haswell,-DMPICH_IGNORE_CXX_SEEK,-std=c++14  -Xcompiler=-fPIC -Wno-deprecated-gpu-targets -shared -dlink CMakeFiles/spfb16_0.dir/src/spfb16_0.cu.o -o CMakeFiles/spfb16_0.dir/cmake_device_link.o 

@@ -1,0 +1,1 @@
+/sw/installed/GCCcore/7.3.0/bin/g++   CMakeFiles/spfb16_0.dir/src/spfb16_0.cu.o CMakeFiles/spfb16_0.dir/cmake_device_link.o -o bin/spfb16_0  -L"/sw/installed/CUDA/10.0.130/lib64/stubs" -L"/sw/installed/CUDA/10.0.130/lib64" -lcudadevrt -lcudart_static -lrt -lpthread -ldl

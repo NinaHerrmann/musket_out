@@ -31,7 +31,7 @@
 		~FIR_map_index_in_place_array_functor() {}
 		
 		__device__
-		auto operator()(int Index, float a){
+		auto operator()(int Index, float2 a){
 			float2 newa;
 			newa.x = 0.0f;
 			newa.y = 0.0f;
@@ -171,7 +171,7 @@
 		mkt::sync_streams();
 		std::chrono::high_resolution_clock::time_point complete_timer_start = std::chrono::high_resolution_clock::now();
 		GpuTimer timer;
-		double allocation = 0.0,fill = 0.0, rest = 0.0, rest2 = 0.0, out = 0.0;
+		double fir_time=0.0, fft_time=0.0, allocation = 0.0,fill = 0.0, rest = 0.0, rest2 = 0.0, out = 0.0;
 		timer.Start();
 		mkt::DArray<float> input(0, 201334784,201334784, 0.0f, 1, 0, 0, mkt::DIST, mkt::COPY);
 		mkt::DArray<float2> c_input_double(0, 268435456,268435456, float2{}, 1, 0, 0, mkt::DIST, mkt::COPY);
@@ -223,6 +223,6 @@
 		c_output.update_self();
 		timer.Stop();
 		out += timer.Elapsed();
-		printf("\n%f;%f;%f;%f;%f;%f;%f\n", fir_time, fft_time, R2C_time, allocation, fill, rest, out);
+		printf("\n%f;%f;%f;%f;%f;%f\n", fir_time, fft_time, allocation, fill, rest, out);
 		return EXIT_SUCCESS;
 		}

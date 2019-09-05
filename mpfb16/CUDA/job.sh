@@ -5,7 +5,7 @@
 #SBATCH --ntasks-per-node 1
 #SBATCH --partition gpu2
 #SBATCH --exclusive
-#SBATCH --output /home/nihe532b/musket-build/spfb16/CUDA/out/spfb16-nodes-1-gpu-1.out
+#SBATCH --output /home/nihe532b/musket-build/mpfb16/CUDA/out/spfb16-nodes-1-gpu-1.out
 #SBATCH --cpus-per-task 24
 #SBATCH --mail-type ALL
 #SBATCH --mail-user Nina.Herrmann@mailbox.tu-dresden.de
@@ -15,7 +15,7 @@
 
 export OMP_NUM_THREADS=24
 
-RUNS=10
+RUNS=100
 for ((i=1;i<=RUNS;i++)); do
-    srun --multi-prog /home/nihe532b/musket/src-gen/spfb16/CUDA/job.conf
+    srun --multi-prog /home/nihe532b/musket-build/mpfb16/CUDA/job.conf
 done
