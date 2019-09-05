@@ -241,12 +241,16 @@ return newa;
 		timer.Stop();
 		fft_time += timer.Elapsed();
 		cudaDeviceSynchronize();
+		timer.Start();
 		c_output.update_self();
-		for(int i = 0; i <10 ; i++){
+		timer.Stop();
+		double out = 0.0;
+		out += timer.Elapsed();		
+for(int i = 0; i <10 ; i++){
 			//printf("(%f%f)\n", c_output[i].x, c_output[i].y);
 			
 		}
-		printf("\n%.5f;%.5f;%.5f;%f;%f;%f\n", fir_time, fft_time, R2C_time, allocation, fill, rest);
+		printf("\n%.5f;%.5f;%.5f;%f;%f;%f,%f", fir_time, fft_time, R2C_time, allocation, fill, rest,out);
 		
 		return EXIT_SUCCESS;
 		}

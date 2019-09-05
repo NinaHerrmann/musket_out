@@ -233,7 +233,13 @@ newa.x = 0.0f;newa.y=0.0f;
 		}
 		timer.Stop();
 		fft_time += timer.Elapsed();
- 		printf("\n%.5f;%.5f;%.5f;%f;%f;%f\n", fir_time, fft_time, R2C_time, allocation, fill, rest);
+		timer.Start();
+		c_output.update_self();
+		timer.Stop();
+		double out = 0.0;
+		out += timer.Elapsed(); 		
+
+printf("\n%.5f;%.5f;%.5f;%f;%f;%f,%f", fir_time, fft_time, R2C_time, allocation, fill, rest,out);
 		
 		return EXIT_SUCCESS;
 		}

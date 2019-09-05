@@ -217,24 +217,46 @@ newa.x = 0.0f;newa.y=0.0f;
 		int log2size = 6;
 		timer.Start();
 		fIR_map_index_in_place_array_functor.taps = (ntaps);fIR_map_index_in_place_array_functor.channels = (nchans);fIR_map_index_in_place_array_functor.spectra = (nspectra);
-		mkt::map_index_in_place<float2, FIR_map_index_in_place_array_functor>(c_input_double, fIR_map_index_in_place_array_functor);
+		mkt::map_index_in_place<float2, FIR_map_index_in_place_array_functor>(c_output, fIR_map_index_in_place_array_functor);
 		timer.Stop();
 		fir_time += timer.Elapsed();
 		timer.Start();
 		//mkt::map_index_in_place<float2, Float_to_float2_map_index_in_place_array_functor>(c_output, float_to_float2_map_index_in_place_array_functor);
 		timer.Stop();
 		R2C_time += timer.Elapsed();
-		timer.Start();
+		//timer.Start();
+		double fetch_init = 0.0, fetch_exec = 0.0, combine_init = 0.0, combine_exec=0.0;
 		for(int j = 0; ((j) < (log2size)); j++){
-			fetch_map_index_in_place_array_functor.counter = (j);fetch_map_index_in_place_array_functor.log2size = (log2size);
+		fetch_init = 0.0; fetch_exec = 0.0; combine_init = 0.0; combine_exec=0.0;	
+		timer.Start();
+	fetch_map_index_in_place_array_functor.counter = (j);fetch_map_index_in_place_array_functor.log2size = (log2size);
+		timer.Stop();
+		fetch_init += timer.Elapsed();
+		timer.Start();
 			mkt::map_index_in_place<float2, Fetch_map_index_in_place_array_functor>(c_input_double, fetch_map_index_in_place_array_functor);
-			combine_map_index_in_place_array_functor.counter = (j);combine_map_index_in_place_array_functor.log2size = (log2size);combine_map_index_in_place_array_functor.pi = (PI);combine_map_index_in_place_array_functor.Problemsize = 16;
-			mkt::map_index_in_place<float2, Combine_map_index_in_place_array_functor>(c_output, combine_map_index_in_place_array_functor);
+		timer.Stop();
+		fetch_exec += timer.Elapsed();
+		timer.Start();	
+		combine_map_index_in_place_array_functor.counter = (j);combine_map_index_in_place_array_functor.log2size = (log2size);combine_map_index_in_place_array_functor.pi = (PI);combine_map_index_in_place_array_functor.Problemsize = 16;
+			
+		timer.Stop();
+		combine_init += timer.Elapsed();
+		timer.Start();
+mkt::map_index_in_place<float2, Combine_map_index_in_place_array_functor>(c_output, combine_map_index_in_place_array_functor);
+		timer.Stop();
+		combine_exec += timer.Elapsed();
+		printf("\n %f, %f, %f, %f", fetch_init, fetch_exec, combine_init, combine_exec);
 		}
+
 		
 		mkt::sync_streams();
+		//timer.Stop();
+		//fft_time += timer.Elapsed();
+		double out_time = 0.0;
+		timer.Start();
+		c_output.update_self();
 		timer.Stop();
-		fft_time += timer.Elapsed();
-		printf("\n%f;%f;%f;%f;%f;%f\n", fir_time, fft_time, R2C_time, allocation, fill, rest);
+		out_time += timer.Elapsed();
+		printf("\n%f;%f;%f;%f;%f;%f,%f", fir_time, fft_time, R2C_time, allocation, fill, rest, out_time);
 		return EXIT_SUCCESS;
 		}

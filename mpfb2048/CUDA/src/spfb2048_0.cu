@@ -219,7 +219,7 @@ return newa;
 		timer.Start();
 
 		fIR_map_index_in_place_array_functor.taps = (ntaps);fIR_map_index_in_place_array_functor.channels = (nchans);fIR_map_index_in_place_array_functor.spectra = (nspectra);	
-		mkt::map_index_in_place<float2, FIR_map_index_in_place_array_functor>(c_input_double, fIR_map_index_in_place_array_functor);
+		mkt::map_index_in_place<float2, FIR_map_index_in_place_array_functor>(c_output, fIR_map_index_in_place_array_functor);
 		timer.Stop();
 		cudaDeviceSynchronize();
 		//input_double.update_self();
@@ -242,12 +242,16 @@ return newa;
 		timer.Stop();
 		fft_time += timer.Elapsed();
 		cudaDeviceSynchronize();
+		timer.Start();
 		c_output.update_self();
+		timer.Stop();
+		double out = 0.0;
+		out += timer.Elapsed();
 		for(int i = 0; i <10 ; i++){
 			//printf("(%f%f)\n", c_output[i].x, c_output[i].y);
 			
 		}
-		printf("\n%.5f;%.5f;%.5f;%f;%f;%f\n", fir_time, fft_time, R2C_time, allocation, fill, rest);
+		printf("\n%.5f;%.5f;%.5f;%f;%f;%f,%f", fir_time, fft_time, R2C_time, allocation, fill, rest,out);
 		
 		return EXIT_SUCCESS;
 		}

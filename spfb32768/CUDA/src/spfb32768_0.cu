@@ -217,7 +217,7 @@
 		timer.Start();
 
 		fIR_map_index_in_place_array_functor.taps = (ntaps);fIR_map_index_in_place_array_functor.channels = (nchans);fIR_map_index_in_place_array_functor.spectra = (nspectra);
-		mkt::map_index_in_place<float2, FIR_map_index_in_place_array_functor>(c_input_double, fIR_map_index_in_place_array_functor);
+		mkt::map_index_in_place<float2, FIR_map_index_in_place_array_functor>(c_output, fIR_map_index_in_place_array_functor);
 		timer.Stop();
 		fir_time += timer.Elapsed();
 		timer.Start();	

@@ -221,16 +221,35 @@
 		//mkt::map_index_in_place<float2, Float_to_float2_map_index_in_place_array_functor>(c_output, float_to_float2_map_index_in_place_array_functor);
 		timer.Stop();
 		R2C_time += timer.Elapsed();
-		timer.Start();	
+		
 		for(int j = 0; ((j) < (log2size)); j++){
-			fetch_map_index_in_place_array_functor.counter = (j);fetch_map_index_in_place_array_functor.log2size = (log2size);
+			double fetch_init = 0.0, fetch_exec = 0.0, combine_init = 0.0, combine_exec = 0.0;
+		timer.Start();		
+	fetch_map_index_in_place_array_functor.counter = (j);fetch_map_index_in_place_array_functor.log2size = (log2size);timer.Stop();
+			fetch_init += timer.Elapsed();
+			timer.Start();
 			mkt::map_index_in_place<float2, Fetch_map_index_in_place_array_functor>(c_input_double, fetch_map_index_in_place_array_functor);
-			combine_map_index_in_place_array_functor.counter = (j);combine_map_index_in_place_array_functor.log2size = (log2size);combine_map_index_in_place_array_functor.pi = (PI);combine_map_index_in_place_array_functor.Problemsize = 16;
+			timer.Stop();
+			fetch_exec += timer.Elapsed();	
+			timer.Start();
+combine_map_index_in_place_array_functor.counter = (j);combine_map_index_in_place_array_functor.log2size = (log2size);combine_map_index_in_place_array_functor.pi = (PI);combine_map_index_in_place_array_functor.Problemsize = 16;
+			timer.Stop();
+			combine_init += timer.Elapsed();
+			timer.Start();
 			mkt::map_index_in_place<float2, Combine_map_index_in_place_array_functor>(c_output, combine_map_index_in_place_array_functor);
+			timer.Stop();
+			combine_exec += timer.Elapsed();
+			printf("\n %d, %f,%f,%f,%f", j, fetch_init, fetch_exec, combine_init, combine_exec);
 		}
+		
+		//timer.Stop();
+		//fft_time += timer.Elapsed();
+		timer.Start();
+		c_output.update_self();
 		timer.Stop();
-		fft_time += timer.Elapsed();
- 		printf("\n%.5f;%.5f;%.5f;%f;%f;%f\n", fir_time, fft_time, R2C_time, allocation, fill, rest);
+		double out = 0.0;
+		out += timer.Elapsed(); 		
+//printf("\n%.5f;%.5f;%.5f;%f;%f;%f,%f", fir_time, fft_time, R2C_time, allocation, fill, rest,out);
 		
 		return EXIT_SUCCESS;
 		}
