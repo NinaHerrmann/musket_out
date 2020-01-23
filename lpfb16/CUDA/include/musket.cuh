@@ -2,6 +2,7 @@
 #include <string>
 #include "spfb16.cuh"
 #include "kernel.cuh"
+#include "timer.cuh"
 
 namespace mkt {
 enum Distribution {DIST, COPY};
@@ -10,7 +11,7 @@ enum Distribution {DIST, COPY};
 cudaStream_t cuda_streams[4];
 
 // Musket functions
-void init();		
+void init();
 void sync_streams();
 
 template<typename T>
@@ -20,13 +21,13 @@ class DArray {
   // CONSTRUCTORS / DESTRUCTOR
   DArray(int pid, size_t size, size_t size_local, T init_value, int partitions, int partition_pos, size_t offset, mkt::Distribution d = DIST, mkt::Distribution device_dist = DIST);
   ~ DArray();
-  
-  template<std::size_t N> 
+
+  template<std::size_t N>
   void operator=(const std::array<T, N>& a);
-  
+
    void update_self();
    void update_devices();
-   
+
 // Getter and Setter
 
   T get_global(size_t index);
@@ -35,7 +36,7 @@ class DArray {
   T get_local(size_t index);
   void set_local(size_t index, const T& value);
 
-  T get_host_local(size_t index);		
+  T get_host_local(size_t index);
   void set_host_local(size_t index, T v);
 
   T& operator[](size_t local_index);
@@ -47,20 +48,20 @@ class DArray {
   size_t get_bytes_gpu() const;
 
   size_t get_offset() const;
-		
+
   mkt::Distribution get_distribution() const;
   mkt::Distribution get_device_distribution() const;
-		
+
   T* get_data();
   const T* get_data() const;
-  
+
   T* get_device_pointer(int gpu) const;
-		
+
  private:
 
   int get_gpu_by_local_index(size_t local_index) const;
   int get_gpu_by_global_index(size_t global_index) const;
-	
+
   int get_pid_by_global_index(size_t global_index) const;
   bool is_local(size_t global_index) const;
 
@@ -136,10 +137,10 @@ class DeviceArray {
   DeviceArray(const DArray<T>& da);
   DeviceArray(const DeviceArray<T>& da);
   ~DeviceArray();
-  
+
   void init(int device_id);
-  
-  
+
+
 // Getter and Setter
 	size_t get_bytes_device() const;
 
@@ -158,7 +159,7 @@ class DeviceArray {
   size_t _bytes_device;
 
   size_t _offset;
-  
+
   size_t _device_offset;
 
   mkt::Distribution _dist;
@@ -178,10 +179,10 @@ void print(std::ostringstream& stream, const T& a);
 
 template<typename T>
 void gather(mkt::DArray<T>& in, mkt::DArray<T>& out);
-	
+
 template<typename T>
 void scatter(mkt::DArray<T>& in, mkt::DArray<T>& out);
-	
+
 
 
 
@@ -211,42 +212,64 @@ mkt::DArray<T>::DArray(int pid, size_t size, size_t size_local, T init_value, in
     : _pid(pid),
       _size(size),
       _size_local(size_local),
-      _size_gpu(0), 
+      _size_gpu(0),
       _partitions(partitions),
       _partition_pos(partition_pos),
       _offset(offset),
       _dist(d),
       _device_dist(device_dist) {
-    
+    std::chrono::high_resolution_clock::time_point complete_timer_start = std::chrono::high_resolution_clock::now();
+		GpuTimer timer;
+		double sizegpu=0.0, cudaMallocHost=0.0, setDeviceMalloc = 0.0, hostdataequals = 0.0, initvalue = 0.0, updatedevices = 0.0;
+		timer.Start();
     if(device_dist == mkt::Distribution::DIST){
     	_size_gpu = size_local / 1; // assume even distribution for now
     }else if(device_dist == mkt::Distribution::COPY){
     	_size_gpu = size_local;
     }
+    timer.Stop();
+    sizegpu += timer.Elapsed();
+    timer.Start();
     _bytes_gpu = _size_gpu * sizeof(T);
     cudaMallocHost((void**)&_data, _size_local * sizeof(T));
-    
+    timer.Stop();
+    cudaMallocHost += timer.Elapsed();
+
 	for(int gpu = 0; gpu < 1; ++gpu){
+    timer.Start();
 		cudaSetDevice(gpu);
-		
+
 		// allocate memory
 		T* devptr;
 		cudaMalloc((void**)&devptr, _size_gpu * sizeof(T));
-		
+    timer.Stop();
+    setDeviceMalloc += timer.Elapsed();
+    timer.Start();
 		// store pointer to device memory and host memory
 		_gpu_data[gpu] = devptr;
 		if(device_dist == mkt::Distribution::DIST){
 	    	_host_data[gpu] = _data + gpu * _size_gpu;
 	    }else if(device_dist == mkt::Distribution::COPY){
 	    	_host_data[gpu] = _data; // all gpus have complete data, thus point to the beginning of host vector
-	    }		
+	    }
+      timer.Stop();
+      hostdataequals += timer.Elapsed();
 	}
-	
+
 	//init data
+  // TODO how much time does this cost?
+  timer.Start();
+
 	for(size_t i = 0; i< _size_local; ++i){
 		_data[i] = init_value;
 	}
+  timer.Stop();
+  initvalue += timer.Elapsed();
+  timer.Start();
 	update_devices();
+  timer.Stop();
+  updatedevices += timer.Elapsed();
+  printf("\n%f;%f;%f;%f;%f;%f\n", sizegpu, cudaMallocHost, setDeviceMalloc, hostdataequals, initvalue, updatedevices);
 }
 
 template<typename T>
@@ -257,7 +280,7 @@ mkt::DArray<T>::~DArray(){
 		cudaFree(_gpu_data[gpu]);
 	}
 }
-		
+
 template<typename T>
 template<std::size_t N>
 void mkt::DArray<T>::operator=(const std::array<T, N>& a) {
@@ -266,8 +289,8 @@ void mkt::DArray<T>::operator=(const std::array<T, N>& a) {
 	_data[element] = a[element];
   }
   update_devices();
-}	
-		
+}
+
 template<typename T>
 void mkt::DArray<T>::update_self() {
 	if(_device_dist == mkt::Distribution::DIST){
@@ -289,7 +312,7 @@ void mkt::DArray<T>::update_devices() {
 		cudaMemcpyAsync(_gpu_data[gpu], _host_data[gpu], _bytes_gpu, cudaMemcpyHostToDevice, mkt::cuda_streams[gpu]);
 	}
 }
-		
+
 template<typename T>
 T mkt::DArray<T>::get_local(size_t index) {
 	int gpu = get_gpu_by_local_index(index);
@@ -441,7 +464,7 @@ int mkt::DArray<T>::get_gpu_by_global_index(size_t global_index) const {
 template<typename T, typename R, typename Functor>
 void mkt::map(const mkt::DArray<T>& in, mkt::DArray<R>& out, Functor f) {
 	size_t gpu_elements = in.get_size_gpu();
-				  
+
 	for(int gpu = 0; gpu < 1; ++gpu){
 		cudaSetDevice(gpu);
 		f.init(gpu);
@@ -449,7 +472,7 @@ void mkt::map(const mkt::DArray<T>& in, mkt::DArray<R>& out, Functor f) {
 		R* out_devptr = out.get_device_pointer(gpu);
 
 		size_t smem_bytes = f.get_smem_bytes();
-		
+
 		dim3 dimBlock(1024);
 		dim3 dimGrid((gpu_elements+dimBlock.x-1)/dimBlock.x);
 		mkt::kernel::map<<<dimGrid, dimBlock, smem_bytes, mkt::cuda_streams[gpu]>>>(in_devptr, out_devptr, gpu_elements, f);
@@ -460,20 +483,20 @@ template<typename T, typename R, typename Functor>
 void mkt::map_index(const mkt::DArray<T>& in, mkt::DArray<R>& out, Functor f) {
 	size_t offset = in.get_offset();
 	size_t gpu_elements = in.get_size_gpu();
-				  
+
 	for(int gpu = 0; gpu < 1; ++gpu){
 		cudaSetDevice(gpu);
 		f.init(gpu);
 		T* in_devptr = in.get_device_pointer(gpu);
 		R* out_devptr = out.get_device_pointer(gpu);
-		
+
 		size_t gpu_offset = offset;
 		if(in.get_device_distribution() == mkt::Distribution::DIST){
 			gpu_offset += gpu * gpu_elements;
 		}
 
 		size_t smem_bytes = f.get_smem_bytes();
-		
+
 		dim3 dimBlock(1024);
 		dim3 dimGrid((gpu_elements+dimBlock.x-1)/dimBlock.x);
 		mkt::kernel::map_index<<<dimGrid, dimBlock, smem_bytes, mkt::cuda_streams[gpu]>>>(in_devptr, out_devptr, gpu_elements, gpu_offset, f);
@@ -483,20 +506,20 @@ void mkt::map_index(const mkt::DArray<T>& in, mkt::DArray<R>& out, Functor f) {
 template<typename T, typename R, typename Functor>
 void mkt::map_local_index(const mkt::DArray<T>& in, mkt::DArray<R>& out, Functor f) {
 	size_t gpu_elements = in.get_size_gpu();
-				  
+
 	for(int gpu = 0; gpu < 1; ++gpu){
 		cudaSetDevice(gpu);
 		f.init(gpu);
 		T* in_devptr = in.get_device_pointer(gpu);
 		R* out_devptr = out.get_device_pointer(gpu);
-		
+
 		size_t gpu_offset = 0;
 		if(in.get_device_distribution() == mkt::Distribution::DIST){
 			gpu_offset += gpu * gpu_elements;
 		}
 
 		size_t smem_bytes = f.get_smem_bytes();
-		
+
 		dim3 dimBlock(1024);
 		dim3 dimGrid((gpu_elements+dimBlock.x-1)/dimBlock.x);
 		mkt::kernel::map_index<<<dimGrid, dimBlock, smem_bytes, mkt::cuda_streams[gpu]>>>(in_devptr, out_devptr, gpu_elements, gpu_offset, f);
@@ -506,14 +529,14 @@ void mkt::map_local_index(const mkt::DArray<T>& in, mkt::DArray<R>& out, Functor
 template<typename T, typename Functor>
 void mkt::map_in_place(mkt::DArray<T>& a, Functor f){
 	size_t gpu_elements = a.get_size_gpu();
-				  
+
 	for(int gpu = 0; gpu < 1; ++gpu){
 		cudaSetDevice(gpu);
 		f.init(gpu);
 		T* devptr = a.get_device_pointer(gpu);
 
 		size_t smem_bytes = f.get_smem_bytes();
-		
+
 		dim3 dimBlock(1024);
 		dim3 dimGrid((gpu_elements+dimBlock.x-1)/dimBlock.x);
 		mkt::kernel::map_in_place<<<dimGrid, dimBlock, smem_bytes, mkt::cuda_streams[gpu]>>>(devptr, gpu_elements, f);
@@ -524,19 +547,19 @@ template<typename T, typename Functor>
 void mkt::map_index_in_place(mkt::DArray<T>& a, Functor f){
 	size_t offset = a.get_offset();
 	size_t gpu_elements = a.get_size_gpu();
-				  
+
 	for(int gpu = 0; gpu < 1; ++gpu){
 		cudaSetDevice(gpu);
 		f.init(gpu);
 		T* devptr = a.get_device_pointer(gpu);
-		
+
 		size_t gpu_offset = offset;
 		if(a.get_device_distribution() == mkt::Distribution::DIST){
 			gpu_offset += gpu * gpu_elements;
 		}
 
 		size_t smem_bytes = f.get_smem_bytes();
-		
+
 		dim3 dimBlock(1024);
 		dim3 dimGrid((gpu_elements+dimBlock.x-1)/dimBlock.x);
 		mkt::kernel::map_index_in_place<<<262144, dimBlock, smem_bytes, mkt::cuda_streams[gpu]>>>(devptr, gpu_elements, gpu_offset, f);
@@ -546,19 +569,19 @@ void mkt::map_index_in_place(mkt::DArray<T>& a, Functor f){
 template<typename T, typename Functor>
 void mkt::map_local_index_in_place(mkt::DArray<T>& a, Functor f){
 	size_t gpu_elements = a.get_size_gpu();
-				  
+
 	for(int gpu = 0; gpu < 1; ++gpu){
 		cudaSetDevice(gpu);
 		f.init(gpu);
 		T* devptr = a.get_device_pointer(gpu);
-		
+
 		size_t gpu_offset = 0;
 		if(a.get_device_distribution() == mkt::Distribution::DIST){
 			gpu_offset = gpu * gpu_elements;
 		}
 
 		size_t smem_bytes = f.get_smem_bytes();
-		
+
 		dim3 dimBlock(1024);
 		dim3 dimGrid((gpu_elements+dimBlock.x-1)/dimBlock.x);
 		mkt::kernel::map_index_in_place<<<dimGrid, dimBlock, smem_bytes, mkt::cuda_streams[gpu]>>>(devptr, gpu_elements, gpu_offset, f);
@@ -573,7 +596,7 @@ mkt::DeviceArray<T>::DeviceArray(const DArray<T>& da)
       _offset(da.get_offset()),
       _device_offset(0),
       _dist(da.get_distribution()),
-      _device_dist(da.get_device_distribution()) 
+      _device_dist(da.get_device_distribution())
 {
 	_device_data = nullptr;
 	for(int i = 0; i < 1; ++i){
@@ -590,7 +613,7 @@ mkt::DeviceArray<T>::DeviceArray(const DeviceArray<T>& da)
       _offset(da._offset),
       _device_offset(da._device_offset),
       _dist(da._dist),
-      _device_dist(da._device_dist) 
+      _device_dist(da._device_dist)
 {
 	_device_data = da._device_data;
 	for(int i = 0; i < 1; ++i){
@@ -609,7 +632,7 @@ void mkt::DeviceArray<T>::init(int gpu) {
 	} else {
 		_device_offset = _size_device * gpu;
 	}
-	    
+
 	_device_data = _gpu_data[gpu];
 }
 
@@ -667,4 +690,3 @@ void mkt::scatter(mkt::DArray<T>& in, mkt::DArray<T>& out){
 	std::copy(in.get_data(), in.get_data() + in.get_size(), out.get_data());
 	out.update_devices();
 }
-	
